@@ -2,7 +2,7 @@
   "name": "nodezoo-npm-latest",
   "version": "0.1.0",
   "description": "nodezoo.com micro-service to batch update npm data.",
-  "main": "npm-all.js",
+  "main": "npm-latest.js",
   "scripts": {
     "test": "mocha test/*.test.js"
   },

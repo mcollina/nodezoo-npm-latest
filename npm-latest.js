@@ -17,19 +17,18 @@ module.exports = function npm_latest( seneca ) {
 
     var source = fs.createReadStream(infile)
 
-    var concurrent = 0
+    var concurrent = 0, count = 0
 
     source
       .pipe(js.parse([true]))
       .pipe(through(function(data){
         var stream = this
-        console.log(data)
 
         if( !data.name ) {
           return;
         }
 
-        concurrent++;
+        concurrent++
         if( 10 < concurrent ) {
           stream.pause()
         }
@@ -39,15 +38,19 @@ module.exports = function npm_latest( seneca ) {
         seneca.act('role:npm,cmd:get',{name:name},function(err,mod){
           if( err ) return finish(err);
 
-          console.log(mod)
+          count++
+          if( 0 == count % 10 ) {
+            process.stdout.write(count+',')
+          }
 
-          if( data['dist-tags'] && 
-              semver.gt( data['dist-tags'].latest, mod.version ) ) 
+          var latest   = data['dist-tags'] ? data['dist-tags'].latest : null
+          var previous = mod.version ? mod.version : null
+
+          if( null == latest || null == previous || semver.gt( latest, previous ) )
           {
             seneca.act('role:npm,cmd:get,update:true',{name:name},function(err,mod){
               if( err ) return finish(err);
 
-              console.log('UPDATE '+mod.name)
               finish()
             })
           }
@@ -61,8 +64,13 @@ module.exports = function npm_latest( seneca ) {
           if( stream.paused ) {
             stream.resume()
           }
-          concurrent--;
+          concurrent--
+
+          stream.queue(data)
         }
+
+      }, function() {
+        console.log('DONE '+count)
       }))
 
   }
